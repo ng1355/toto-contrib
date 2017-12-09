@@ -26,6 +26,7 @@
 """
 import sys
 import os
+import io
 import tempfile
 import fnmatch
 
@@ -221,7 +222,6 @@ def record_artifacts_as_dict(artifacts):
 
   return artifacts_dict
 
-import io
 def execute_link(link_cmd_args, record_streams):
   """
   <Purpose>
@@ -265,10 +265,10 @@ def execute_link(link_cmd_args, record_streams):
 
   if record_streams:
     # XXX: Use SpooledTemporaryFile if we expect very large outputs
-    stdout_file = tempfile.NamedTemporaryFile()
-    stderr_file = tempfile.NamedTemporaryFile()
-    stdout_name = stdout_file.name
-    stderr_name = stderr_file.name
+    stdout_file = tempfile.mkstemp()
+    stderr_file = tempfile.mkstemp()
+    stdout_name = stdout_file[1]
+    stderr_name = stderr_file[1]
 
     with \
     io.open(stdout_name, 'wb') as writer, \
@@ -276,6 +276,7 @@ def execute_link(link_cmd_args, record_streams):
     io.open(stderr_name, 'wb') as err_write, \
     io.open(stderr_name, 'rb', 1) as err_read:
 
+        print 'about to popen...'
         proc = subprocess.Popen((link_cmd_args), bufsize=-1, stdout=writer, \
              stderr=err_write) 
 
@@ -296,6 +297,11 @@ def execute_link(link_cmd_args, record_streams):
         stdout_str = reader.read()
         stderr_str = err_read.read()
         return_value = proc.poll()
+
+    os.close(stdout_file[0])
+    os.close(stderr_file[0])
+#    os.remove(stdout_name) 
+#    os.remove(stdout_name) 
 
   else:
       return_value = subprocess.call(link_cmd_args)
